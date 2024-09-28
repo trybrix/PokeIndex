@@ -125,13 +125,13 @@ fun SignUpScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(14.dp),
+            .padding(14.dp)
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Image(                            //from the lecture R. resource
-            painter = painterResource(id = R.drawable.pikachu_ninja),
+            painter = painterResource(id = R.drawable.pokemon_logo),
             contentDescription = "FSC Ram Logo",
             modifier = Modifier
                 .size(120.dp)

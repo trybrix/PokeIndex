@@ -4,16 +4,19 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,12 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.zybooks.individpro.R
@@ -55,27 +60,34 @@ fun LoginScreen(
     val correctEmail = "qwer@qwer.com"
     val correctPassword = "qwer"
 
+    Image(
+        painter = painterResource(id = R.drawable.login_picture),
+        contentDescription = "Login Background Image",
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer { // blur effect
+                renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
+            },
+        contentScale = ContentScale.Crop,// covers entire screen
+    )
+
     Column(
         modifier = modifier//.verticalScroll imported
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(14.dp)
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(                            //from the lecture R. resource
-            painter = painterResource(id = R.drawable.pokemon_logo),
-            contentDescription = "FSC Ram Logo",
+            painter = painterResource(id = R.drawable.pokemongo_logo),
+            contentDescription = "Pokemon GO Logo",
             modifier = Modifier
-                .size(120.dp)
-//                .padding(top = 14.dp)
+                .fillMaxSize(),
+
         )
 
-        Text(
-            text = "OG PokeDex",
-            textAlign = TextAlign.Center, // Center the text content
-            modifier = Modifier.fillMaxWidth() // Make the text fill the width, allowing it to center
-        )
+        Spacer(modifier = Modifier.height(200.dp))
 
         OutlinedTextField(//email
             value = email,
@@ -86,7 +98,13 @@ fun LoginScreen(
             label = {Text("Email")},
             modifier = modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(// change background color
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
+
         )
 
         OutlinedTextField(//password
@@ -95,10 +113,14 @@ fun LoginScreen(
             label = {Text("Password")},
             modifier = modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            ),
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            //to hide password when typing
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),//to hide password when typing
         )
 
         Row (
