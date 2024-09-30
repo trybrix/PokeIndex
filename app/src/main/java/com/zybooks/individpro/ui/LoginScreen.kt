@@ -1,5 +1,6 @@
 package com.zybooks.individpro.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +32,7 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,10 +41,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.zybooks.individpro.R
 import com.zybooks.individpro.ui.theme.IndividProTheme
+import com.zybooks.individpro.data.UserManager
 
-/*
-Author: Jan Brix Batalla
- */
+//Author: Jan Brix Batalla
+
 
 //loginScreen for user to input and validates
 //recomposition when run doesn't follow any convention and runs accordingly to prevent frame drops
@@ -50,15 +54,13 @@ fun LoginScreen(
     onContinueClicked: () -> Unit,
     onSignUpContinue: () -> Unit, // callback to navigate to signup screen
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
 
     val scrollState = rememberScrollState()//imported allows landscape scroll
-
-    //credentials - db not connected yet
-    val correctEmail = "qwer@qwer.com"
-    val correctPassword = "qwer"
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Image(
         painter = painterResource(id = R.drawable.login_picture),
@@ -83,11 +85,12 @@ fun LoginScreen(
             painter = painterResource(id = R.drawable.pokemongo_logo),
             contentDescription = "Pokemon GO Logo",
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxWidth(if (isLandscape) 0.5f else 1f)
+                .padding(top = if (isLandscape) 50.dp else 16.dp)
 
         )
 
-        Spacer(modifier = Modifier.height(200.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 200.dp))
 
         OutlinedTextField(//email
             value = email,
@@ -96,9 +99,9 @@ fun LoginScreen(
                 //allows for user to enter when theres an accidental whiteSpace
             },
             label = {Text("Email")},
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(4.dp),
+            modifier = modifier// new
+                .fillMaxWidth(if (isLandscape) 0.7f else 1f)
+                .padding(horizontal = 16.dp, vertical = if (isLandscape) 16.dp else 8.dp),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(// change background color
                 focusedContainerColor = Color.White,
@@ -112,8 +115,8 @@ fun LoginScreen(
             onValueChange = {password = it},
             label = {Text("Password")},
             modifier = modifier
-                .fillMaxWidth()
-                .padding(4.dp),
+                .fillMaxWidth(if (isLandscape) 0.7f else 1f)
+                .padding(horizontal = 16.dp, vertical = if (isLandscape) 16.dp else 8.dp),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
@@ -128,35 +131,41 @@ fun LoginScreen(
         ) {
             Button(
                 modifier = Modifier.padding(vertical = 14.dp),
-                onClick = {
-                    if (email == correctEmail && password == correctPassword) {//hard coded email/pass- db not set
-                        errorMessage = ""
-                        onContinueClicked()//continues to homescreen
+                onClick = {// should check email first then pw
+                    if (UserManager.isUserRegistered(email)) {// goes to registerUsers and check
+                        val user = UserManager.getAllUsers().find { it.email == email }// goes to list of users
+
+                        if (user != null && user.password == password) {
+                            errorMessage = ""
+                            onContinueClicked()
+                        } else {
+                            errorMessage = "Invalid password. Please try again."
+                        }
                     } else {
-                        errorMessage = "Invalid email or password. Please try again."
+                        errorMessage = "Email not registered. Please sign up."
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.pokemon_navyBlue),//get resource from colors.xml
-                    contentColor = Color.White//simple colors
+                    containerColor = colorResource(R.color.pokemon_navyBlue),
+                    contentColor = Color.White
                 )
             ) {
                 Text("Log In")
             }
 
-            Button( //make new comp only put onClick = onSignUp
+            Button(
                 modifier = Modifier.padding(vertical = 14.dp),
-                onClick = onSignUpContinue,//goes to sign up screen
+                onClick = onSignUpContinue,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.pokemon_navyBlue),//get resource from colors.xml
-                    contentColor = Color.White//simple colors
+                    containerColor = colorResource(R.color.pokemon_navyBlue),
+                    contentColor = Color.White
                 )
             ) {
                 Text("Sign Up")
             }
         }
 
-        if (errorMessage.isNotEmpty()){
+        if (errorMessage.isNotEmpty()) {
             Text(
                 text = errorMessage,
                 color = Color.Red,
