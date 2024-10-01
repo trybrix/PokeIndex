@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,14 +30,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.zybooks.individpro.R
-import com.zybooks.individpro.ui.theme.IndividProTheme
 import com.zybooks.individpro.data.User
 import com.zybooks.individpro.data.UserManager
+import com.zybooks.individpro.ui.theme.IndividProTheme
 
 //Author: Jan Brix Batalla
 
@@ -89,7 +86,8 @@ fun SignUpScreen(
 
         OutlinedTextField(
             value = firstName,
-            onValueChange = {firstName = it},
+            onValueChange = { input ->
+                firstName = input.trim()},
             label = {Text("Firstname")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
@@ -103,7 +101,8 @@ fun SignUpScreen(
 
         OutlinedTextField(
             value = lastName,
-            onValueChange = {lastName = it},
+            onValueChange = { input ->
+                lastName = input.trim()},
             label = {Text("Lastname")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
@@ -117,7 +116,8 @@ fun SignUpScreen(
 
         OutlinedTextField(
             value = email,
-            onValueChange = {email = it},
+            onValueChange = { input ->
+                email = input.trim()},
             label = {Text("Email")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
@@ -132,7 +132,8 @@ fun SignUpScreen(
         //can use import datepickerdialog
         OutlinedTextField(
             value = dateOfBirth,
-            onValueChange = {dateOfBirth = it},
+            onValueChange = { input ->
+                dateOfBirth = input.trim()},
             label = {Text("Date of Birth (MM/DD/YYYY)")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
@@ -146,7 +147,8 @@ fun SignUpScreen(
 
         OutlinedTextField(
             value = password,
-            onValueChange = {password = it},
+            onValueChange = { input ->
+                password = input.trim()},
             label = {Text("Password")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
@@ -164,7 +166,8 @@ fun SignUpScreen(
 
         OutlinedTextField(
             value = reTypePassword,
-            onValueChange = {reTypePassword = it},
+            onValueChange = { input ->
+                reTypePassword = input.trim()},
             label = {Text("Re-type Password")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
@@ -184,9 +187,14 @@ fun SignUpScreen(
             Button(
                 onClick = {
                     when {//i love kotlin
-                        firstName.length !in 3..30 -> errorMessage = "Firstname should be at least 3 characters long:)"
-                        email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> errorMessage = "Enter a valid email address."
-                        password.length < 6 -> errorMessage = "Password should be at least 6 characters long." //for a proper password it should be >12char
+                        firstName.isBlank() || lastName.isBlank() || email.isBlank() || dateOfBirth.isBlank() || password.isBlank() || reTypePassword.isBlank() ->
+                            errorMessage = "All fields must be filled out to sign up."
+                        firstName.length !in 3..30 ->
+                            errorMessage = "Firstname should be at least 3 characters long:)"
+                        email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
+                            errorMessage = "Enter a valid email address."
+                        password.length < 6 ->
+                            errorMessage = "Password should be at least 6 characters long." //for a proper password it should be >12char
                         else -> {
                             val newUser = User(firstName, lastName, email, dateOfBirth, password, reTypePassword)// goes to user.kt and creates
 

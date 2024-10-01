@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,8 +38,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.zybooks.individpro.R
-import com.zybooks.individpro.ui.theme.IndividProTheme
 import com.zybooks.individpro.data.UserManager
+import com.zybooks.individpro.ui.theme.IndividProTheme
 
 //Author: Jan Brix Batalla
 
@@ -95,7 +93,7 @@ fun LoginScreen(
         OutlinedTextField(//email
             value = email,
             onValueChange = {validEmailInput ->
-                email = validEmailInput.trimStart{it.isWhitespace()}
+                email = validEmailInput.trim()
                 //allows for user to enter when theres an accidental whiteSpace
             },
             label = {Text("Email")},
@@ -112,7 +110,8 @@ fun LoginScreen(
 
         OutlinedTextField(//password
             value = password,
-            onValueChange = {password = it},
+            onValueChange = {validPasswordInput ->
+                password = validPasswordInput.trim()},
             label = {Text("Password")},
             modifier = modifier
                 .fillMaxWidth(if (isLandscape) 0.7f else 1f)
