@@ -43,6 +43,7 @@ import com.zybooks.individpro.ui.theme.IndividProTheme
 @Composable
 fun SignUpScreen(
     modifier: Modifier = Modifier,
+    onLoginClick: () -> Unit,
     onSignUpComplete: () -> Unit
 ) {
     var firstName by rememberSaveable {mutableStateOf("")}
@@ -81,7 +82,7 @@ fun SignUpScreen(
             contentDescription = "Pokemon Logo",
             modifier = Modifier
                 .fillMaxWidth(if (isLandscape) 0.5f else 1f)
-                .padding(top = if (isLandscape) 50.dp else 16.dp)
+                .padding(top = if (isLandscape) 50.dp else 8.dp)
         )
 
         OutlinedTextField(
@@ -214,6 +215,16 @@ fun SignUpScreen(
             ) {
                 Text("Sign Up")
             }
+            Button(
+                onClick = { onLoginClick()},
+                modifier = Modifier.padding(vertical = 14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorResource(R.color.pokemon_navyBlue),
+                    contentColor = colorResource(R.color.white)
+                )
+            ) {
+                Text("Log In")
+            }
         }
 
         if (errorMessage.isNotEmpty()) {
@@ -226,7 +237,9 @@ fun SignUpScreen(
 @Composable
 fun SignUpScreenPreview() {
     IndividProTheme {
-        SignUpScreen(onSignUpComplete = {})
+        SignUpScreen(
+            onSignUpComplete = {},
+            onLoginClick = {})
         //not passing anything - just want to show the OnboardingScreen so pass an empty call
     }
 }

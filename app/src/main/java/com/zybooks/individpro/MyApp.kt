@@ -30,7 +30,8 @@ fun MyApp() {
         }
         "signup" -> {
             SignUpScreen(
-                onSignUpComplete = { currentScreen = "login" }//after success goes to hs
+                onSignUpComplete = { currentScreen = "login" },
+                onLoginClick = { currentScreen = "login"}
             )
         }
     }
