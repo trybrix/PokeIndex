@@ -196,6 +196,8 @@ fun SignUpScreen(
                             errorMessage = "Enter a valid email address."
                         password.length < 6 ->
                             errorMessage = "Password should be at least 6 characters long." //for a proper password it should be >12char
+                        password != reTypePassword ->
+                            errorMessage = "Passwords do not match. Please retype your password."
                         else -> {
                             val newUser = User(firstName, lastName, email, dateOfBirth, password, reTypePassword)// goes to user.kt and creates
 
