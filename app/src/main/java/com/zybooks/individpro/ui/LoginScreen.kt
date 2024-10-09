@@ -84,11 +84,10 @@ fun LoginScreen(
             contentDescription = "Pokemon GO Logo",
             modifier = Modifier
                 .fillMaxWidth(if (isLandscape) 0.5f else 1f)
-                .padding(top = if (isLandscape) 50.dp else 16.dp)
-
+                .padding(top = if (isLandscape) 50.dp else 60.dp)
         )
 
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 200.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 140.dp))
 
         OutlinedTextField(//email
             value = email,

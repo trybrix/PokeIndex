@@ -2,6 +2,7 @@ package com.zybooks.individpro.ui
 
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,8 +31,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.zybooks.individpro.R
 import com.zybooks.individpro.data.User
 import com.zybooks.individpro.data.UserManager
@@ -186,26 +189,26 @@ fun SignUpScreen(
             horizontalArrangement = Arrangement.spacedBy(24.dp)//syntax for adding gap
         ) {
             Button(
-                onClick = {
-                    when {//i love kotlin
-                        firstName.isBlank() || lastName.isBlank() || email.isBlank() || dateOfBirth.isBlank() || password.isBlank() || reTypePassword.isBlank() ->
-                            errorMessage = "All fields must be filled out to sign up."
-                        firstName.length !in 3..30 ->
-                            errorMessage = "Firstname should be at least 3 characters long:)"
-                        email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
-                            errorMessage = "Enter a valid email address."
-                        password.length < 6 ->
-                            errorMessage = "Password should be at least 6 characters long." //for a proper password it should be >12char
-                        password != reTypePassword ->
-                            errorMessage = "Passwords do not match. Please retype your password."
-                        else -> {
-                            val newUser = User(firstName, lastName, email, dateOfBirth, password, reTypePassword)// goes to user.kt and creates
+                onClick = {//i love kotlin
+                    errorMessage = ""
 
-                            if (UserManager.registerUser(newUser)) {
-                                onSignUpComplete()
-                            } else {
-                                errorMessage = "Email already registered."
-                            }
+                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || dateOfBirth.isBlank() || password.isBlank() || reTypePassword.isBlank()){
+                        errorMessage = "All fields must be filled out to sign up."
+                    } else if (firstName.length !in 3..30){
+                        errorMessage = "Firstname should be at least 3 characters long."
+                    } else if (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+                        errorMessage = "Enter a valid email address."
+                    } else if (password.length < 6){
+                        errorMessage = "Password should be at least 6 characters long." // for a proper password it should be >12 char
+                    } else if (password != reTypePassword){
+                        errorMessage = "Passwords do not match. Please retype your password."
+                    } else{
+                        val newUser = User(firstName, lastName, email, dateOfBirth, password, reTypePassword) // goes to user.kt and creates
+
+                        if (UserManager.registerUser(newUser)){
+                            onSignUpComplete()
+                        } else{
+                            errorMessage = "Email already registered."
                         }
                     }
                 },
@@ -217,20 +220,33 @@ fun SignUpScreen(
             ) {
                 Text("Sign Up")
             }
+
             Button(
                 onClick = { onLoginClick()},
-                modifier = Modifier.padding(vertical = 14.dp),
+                modifier = Modifier
+                    .padding(top = 10.dp, start = 10.dp), // Padding for top and left
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.pokemon_navyBlue),
-                    contentColor = colorResource(R.color.white)
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White
                 )
             ) {
-                Text("Log In")
+                Text(    // Icon is an alternative for this
+                    "<",
+                    fontSize = 30.sp
+                )
             }
         }
 
         if (errorMessage.isNotEmpty()) {
-            Text(text = errorMessage, color = Color.Red)
+            Text(
+                text = errorMessage,
+                color = Color.Red,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .background(Color(0xFF000000)) // ARGB
+                    .padding(16.dp)
+            )
         }
     }
 }
