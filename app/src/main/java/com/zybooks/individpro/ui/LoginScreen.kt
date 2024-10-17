@@ -37,6 +37,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.zybooks.individpro.R
 import com.zybooks.individpro.data.UserManager
 import com.zybooks.individpro.ui.theme.IndividProTheme
@@ -49,8 +51,7 @@ import com.zybooks.individpro.ui.theme.IndividProTheme
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    onContinueClicked: () -> Unit,
-    onSignUpContinue: () -> Unit, // callback to navigate to signup screen
+    navController: NavController
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -135,7 +136,7 @@ fun LoginScreen(
 
                         if (user != null && user.password == password) {
                             errorMessage = ""
-                            onContinueClicked()
+                            navController.navigate("home")
                         } else {
                             errorMessage = "Invalid password. Please try again."
                         }
@@ -153,7 +154,7 @@ fun LoginScreen(
 
             Button(
                 modifier = Modifier.padding(vertical = 14.dp),
-                onClick = onSignUpContinue,
+                onClick = { navController.navigate("signup") },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorResource(R.color.pokemon_navyBlue),
                     contentColor = Color.White
@@ -177,10 +178,8 @@ fun LoginScreen(
 @Preview(showBackground = true)
 @Composable
 fun LoginPreview() {
+    val navController = rememberNavController()
     IndividProTheme {
-        LoginScreen(
-            onContinueClicked = {},  // Pass an empty lambda for the preview
-            onSignUpContinue = {}    // Pass an empty lambda for the preview
-        )
+        LoginScreen(navController = navController)
     }
 }

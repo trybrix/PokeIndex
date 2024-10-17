@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.zybooks.individpro.R
 import com.zybooks.individpro.data.User
 import com.zybooks.individpro.data.UserManager
@@ -46,8 +48,7 @@ import com.zybooks.individpro.ui.theme.IndividProTheme
 @Composable
 fun SignUpScreen(
     modifier: Modifier = Modifier,
-    onLoginClick: () -> Unit,
-    onSignUpComplete: () -> Unit
+    navController: NavController
 ) {
     var firstName by rememberSaveable {mutableStateOf("")}
     var lastName by rememberSaveable {mutableStateOf("")}
@@ -206,13 +207,14 @@ fun SignUpScreen(
                         val newUser = User(firstName, lastName, email, dateOfBirth, password, reTypePassword) // goes to user.kt and creates
 
                         if (UserManager.registerUser(newUser)){
-                            onSignUpComplete()
+                            navController.navigate("login")
                         } else{
                             errorMessage = "Email already registered."
                         }
                     }
                 },
-                modifier = Modifier.padding(vertical = 14.dp),
+                modifier = Modifier
+                    .padding(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colorResource(R.color.pokemon_navyBlue),
                     contentColor = colorResource(R.color.white)
@@ -222,17 +224,16 @@ fun SignUpScreen(
             }
 
             Button(
-                onClick = { onLoginClick()},
+                onClick = { navController.navigate("login")},
                 modifier = Modifier
-                    .padding(top = 10.dp, start = 10.dp), // Padding for top and left
+                    .padding(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
+                    containerColor = colorResource(R.color.pokemon_navyBlue),
                     contentColor = Color.White
                 )
             ) {
                 Text(    // Icon is an alternative for this
-                    "<",
-                    fontSize = 30.sp
+                    "Back to Login"
                 )
             }
         }
@@ -254,10 +255,8 @@ fun SignUpScreen(
 @Preview(showBackground = true)
 @Composable
 fun SignUpScreenPreview() {
+    val navController = rememberNavController()
     IndividProTheme {
-        SignUpScreen(
-            onSignUpComplete = {},
-            onLoginClick = {})
-        //not passing anything - just want to show the OnboardingScreen so pass an empty call
+        SignUpScreen(navController = navController)
     }
 }
