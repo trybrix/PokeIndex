@@ -163,6 +163,15 @@ fun LoginScreen(
                 Text("Sign Up")
             }
         }
+        Button(
+            onClick = { navController.navigate("home") },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.pokemon_navyBlue),
+                contentColor = colorResource(R.color.pokemon_yellow)
+            )
+        ) {
+            Text(text = "Guest")
+        }
 
         if (errorMessage.isNotEmpty()) {
             Text(

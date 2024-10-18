@@ -1,5 +1,7 @@
 package com.zybooks.individpro
 
+import FirstQuizScreen
+import PokeQuiz
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,7 +27,13 @@ fun MyApp() {
             SignUpScreen(navController = navController)
         }
         composable("home") {
-            HomeScreen()
+            HomeScreen(navController = navController)
+        }
+        composable("pokequiz") {
+            PokeQuiz(navController = navController)
+        }
+        composable("first_quiz") {
+            FirstQuizScreen(navController = navController)
         }
     }
 }
