@@ -8,6 +8,7 @@ import PokeQuiz
 import QuizResultScreen
 import SecondQuizScreen
 import SixthQuizScreen
+import StatsScreen
 import ThirdQuizScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -134,6 +135,19 @@ fun MyApp() {
             // Call the QuizResultScreen composable and pass the retrieved arguments to it
             QuizResultScreen(navController, totalCorrectAnswers, totalScore)
         }
+        //for stats
+        composable(
+            route = "stats_screen/{totalCorrectAnswers}/{totalScore}",
+            arguments = listOf(
+                navArgument("totalCorrectAnswers") { type = NavType.IntType },
+                navArgument("totalScore") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val totalCorrectAnswers = backStackEntry.arguments?.getInt("totalCorrectAnswers") ?: 0
+            val totalScore = backStackEntry.arguments?.getInt("totalScore") ?: 0
+            StatsScreen(navController, totalCorrectAnswers, totalScore)
+        }
+
     }
 }
 

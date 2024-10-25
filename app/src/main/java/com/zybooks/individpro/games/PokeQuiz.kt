@@ -1,3 +1,4 @@
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,7 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.RadioButton
@@ -26,6 +31,7 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,15 +44,16 @@ import com.zybooks.individpro.R
 
 // sets navController to access the quiz home screen
 @Composable
-fun PokeQuiz(navController: NavController) {
+fun PokeQuiz(navController: NavController, totalCorrectAnswers: Int = 0, totalScore: Int = 0) {
+    val scrollState = rememberScrollState()//imported allows landscape scroll
 
     Image(
-        painter = painterResource(id = R.drawable.pokeball_logo),
+        painter = painterResource(id = R.drawable.quiz_homeimage),
         contentDescription = "Pokemon Background Image",
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
-                renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
+                renderEffect = BlurEffect(radiusX = 25f, radiusY = 25f)
             },
         contentScale = ContentScale.Crop
     )
@@ -55,28 +62,58 @@ fun PokeQuiz(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(16.dp)
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // simple welcome text for the user
         Text(
             text = "Welcome to PokeQuiz",
             modifier = Modifier
+                .padding(top = 50.dp)
                 .border(1.dp, Color.Black)
+                .background(Color.White.copy(alpha = 0.8f))
                 .padding(20.dp),
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            fontSize = 30.sp,
+
         )
 
         Spacer(modifier = Modifier.height(50.dp))
 
-        //button to nav to start the quiz - style is not needed just added for fun
-        Button(onClick = { navController.navigate("first_quiz") }) {
-            Text(text = "Start Quiz")
+        Text(
+            text = "Test your knowledge of the original 151 Pokémon in this 7-question quiz! " +
+                    "Each question will have 4 possible choices. Can you collect them all?",
+            modifier = Modifier
+                .background(Color.White.copy(alpha = 0.8f))
+                .border(1.dp, Color.Black)
+                .padding(16.dp),
+            textAlign = TextAlign.Center,
+            fontSize = 18.sp,
+            color = Color.Black,
+            lineHeight = 28.sp
+        )
+
+        Spacer(modifier = Modifier.height(150.dp))
+
+        Row (
+            modifier = Modifier
+                .padding(top = 25.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            //button to nav to start the quiz - style is not needed just added for fun
+            Button(onClick = { navController.navigate("first_quiz") }) {
+                Text(text = "Start Quiz")
+            }
+
+            Button(onClick = { navController.navigate("stats_screen/$totalCorrectAnswers/$totalScore") }) {
+                Text(text = "View Stats")
+            }
         }
 
-        //nav back to HOME
-        Button(onClick = { navController.navigate("pokequiz") }) {
+        //nav back to HOME where user can choose another activity to play to be added (not available yet - just the pokequiz)
+        Button(onClick = { navController.navigate("home") }) {
             Text(text = "Home")
         }
     }
@@ -110,6 +147,7 @@ fun FeedbackDialog(isAnswerCorrect: Boolean, onDismiss: () -> Unit) {
 fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, totalScore: Int) {
     val totalQuestions = 7
     val maxScore = totalQuestions * 100
+    val scrollState = rememberScrollState()//imported allows landscape scroll
 
     //simple bg
     Image(
@@ -126,7 +164,8 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -148,7 +187,7 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
 
             Text(
                 text = "$totalCorrectAnswers out of $totalQuestions",
-                fontSize = 26.sp,
+                fontSize = 24.sp,
                 color = Color.Green,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -164,13 +203,13 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
         ) {
             Text(
                 text = "Total Earning",
-                fontSize = 26.sp,
+                fontSize = 20.sp,
                 color = Color.Black
             )
 
             Text(
                 text = "\$$totalScore out of \$$maxScore",
-                fontSize = 20.sp,
+                fontSize = 24.sp,
                 color = Color.Green,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -189,6 +228,75 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
             Text("Play Again")
         }
 
+        //goes back to the first_quiz is user want to play again with 0/0 scores
+        Button(onClick = {
+            navController.navigate("pokequiz")
+        }) {
+            Text("Home")
+        }
+
+    }
+}
+
+@Composable
+fun StatsScreen(navController: NavController, totalCorrectAnswers: Int, totalScore: Int) {
+    val totalQuestions = 7
+    val maxScore = totalQuestions * 100
+
+    Image(
+        painter = painterResource(id = R.drawable.calm_verticalbg),
+        contentDescription = "Background Image",
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
+            },
+        contentScale = ContentScale.Crop
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "📊 Your Stats 📊", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Amount Correct: $totalCorrectAnswers out of $totalQuestions",
+            fontSize = 20.sp,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Total Score: \$$totalScore out of \$$maxScore",
+            fontSize = 20.sp,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Row (
+            modifier = Modifier
+                .padding(top = 25.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Button(onClick = {
+                navController.navigate("first_quiz")
+            }) {
+                Text("Play")
+            }
+
+            Button(onClick = {
+                navController.navigate("pokequiz")
+            }) {
+                Text("Home")
+            }
+        }
     }
 }
 
@@ -203,6 +311,10 @@ fun FirstQuizScreen(navController: NavController, score: Int, correctAnswers: In
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(0) }
     var currentCorrectAnswers by remember { mutableStateOf(0) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
 
     //simple bg
     Box() {
@@ -221,7 +333,8 @@ fun FirstQuizScreen(navController: NavController, score: Int, correctAnswers: In
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -282,7 +395,7 @@ fun FirstQuizScreen(navController: NavController, score: Int, correctAnswers: In
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
@@ -324,6 +437,9 @@ fun SecondQuizScreen(navController: NavController, score: Int, correctAnswers: I
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     //simple bg
     Box() {
@@ -342,7 +458,8 @@ fun SecondQuizScreen(navController: NavController, score: Int, correctAnswers: I
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -403,7 +520,7 @@ fun SecondQuizScreen(navController: NavController, score: Int, correctAnswers: I
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
@@ -445,6 +562,9 @@ fun ThirdQuizScreen(navController: NavController, score: Int, correctAnswers: In
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     //simple bg
     Box() {
@@ -463,7 +583,8 @@ fun ThirdQuizScreen(navController: NavController, score: Int, correctAnswers: In
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -524,7 +645,7 @@ fun ThirdQuizScreen(navController: NavController, score: Int, correctAnswers: In
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
@@ -566,6 +687,9 @@ fun FourthQuizScreen(navController: NavController, score: Int, correctAnswers: I
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     //simple bg
     Box() {
@@ -584,7 +708,8 @@ fun FourthQuizScreen(navController: NavController, score: Int, correctAnswers: I
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -645,7 +770,7 @@ fun FourthQuizScreen(navController: NavController, score: Int, correctAnswers: I
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
@@ -687,6 +812,9 @@ fun FifthQuizScreen(navController: NavController, score: Int, correctAnswers: In
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     //simple bg
     Box() {
@@ -705,7 +833,8 @@ fun FifthQuizScreen(navController: NavController, score: Int, correctAnswers: In
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -766,7 +895,7 @@ fun FifthQuizScreen(navController: NavController, score: Int, correctAnswers: In
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
@@ -808,6 +937,9 @@ fun SixthQuizScreen(navController: NavController, score: Int, correctAnswers: In
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     //simple bg
     Box() {
@@ -826,7 +958,8 @@ fun SixthQuizScreen(navController: NavController, score: Int, correctAnswers: In
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -887,7 +1020,7 @@ fun SixthQuizScreen(navController: NavController, score: Int, correctAnswers: In
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
@@ -929,6 +1062,9 @@ fun FinalQuizScreen(navController: NavController, score: Int, correctAnswers: In
     var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
+    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val configuration = LocalConfiguration.current // need this for orientation
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     //simple bg
     Box() {
@@ -947,7 +1083,8 @@ fun FinalQuizScreen(navController: NavController, score: Int, correctAnswers: In
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -1008,7 +1145,7 @@ fun FinalQuizScreen(navController: NavController, score: Int, correctAnswers: In
             }
         }
 
-        Spacer(modifier = Modifier.height(350.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
             onClick = {
