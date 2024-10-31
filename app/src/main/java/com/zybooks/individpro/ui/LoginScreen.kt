@@ -51,7 +51,8 @@ import com.zybooks.individpro.ui.theme.IndividProTheme
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    onLoginSuccess: (String) -> Unit
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -136,7 +137,9 @@ fun LoginScreen(
 
                         if (user != null && user.password == password) {
                             errorMessage = ""
-                            navController.navigate("home")
+                            navController.navigate("home/${user.email}")
+                            //navController.navigate("home/{userEmail}") // passes the placeholder - makes user sign in 2x
+                            onLoginSuccess(user.email) // Pass email to onLoginSuccess callback for navigation
                         } else {
                             errorMessage = "Invalid password. Please try again."
                         }
@@ -163,15 +166,16 @@ fun LoginScreen(
                 Text("Sign Up")
             }
         }
-        Button(
-            onClick = { navController.navigate("home") },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colorResource(R.color.pokemon_navyBlue),
-                contentColor = colorResource(R.color.pokemon_yellow)
-            )
-        ) {
-            Text(text = "Guest")
-        }
+        // Bypass the login for ease of access
+//        Button(
+//            onClick = { navController.navigate("todo - get proper nav") },
+//            colors = ButtonDefaults.buttonColors(
+//                containerColor = colorResource(R.color.pokemon_navyBlue),
+//                contentColor = colorResource(R.color.pokemon_yellow)
+//            )
+//        ) {
+//            Text(text = "Guest")
+//        }
 
         if (errorMessage.isNotEmpty()) {
             Text(
@@ -189,6 +193,8 @@ fun LoginScreen(
 fun LoginPreview() {
     val navController = rememberNavController()
     IndividProTheme {
-        LoginScreen(navController = navController)
+        LoginScreen(navController = navController, onLoginSuccess = { userEmail ->
+            navController.navigate("home/${userEmail}") // Navigate to home with email
+        })
     }
 }

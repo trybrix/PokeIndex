@@ -1,20 +1,18 @@
 package com.zybooks.individpro
 
-import FifthQuizScreen
-import FinalQuizScreen
-import FirstQuizScreen
-import FourthQuizScreen
 import PokeQuiz
 import QuizResultScreen
-import SecondQuizScreen
-import SixthQuizScreen
+import QuizScreen
+import StatsDataStore
 import StatsScreen
-import ThirdQuizScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,7 +21,7 @@ import androidx.navigation.navArgument
 import com.zybooks.individpro.ui.HomeScreen
 import com.zybooks.individpro.ui.LoginScreen
 import com.zybooks.individpro.ui.SignUpScreen
-
+import kotlinx.coroutines.launch
 
 /*
 Author: Jan Brix Batalla
@@ -32,87 +30,48 @@ Author: Jan Brix Batalla
 @Composable
 fun MyApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var totalScore by remember { mutableStateOf(0) }
     var totalCorrectAnswers by remember { mutableStateOf(0) }
 
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
-            LoginScreen(navController = navController)
+            LoginScreen(
+                navController = navController,
+                onLoginSuccess = { userEmail ->
+                    navController.navigate("home/$userEmail")
+                }
+            )
         }
+
         composable("signup") {
             SignUpScreen(navController = navController)
         }
-        composable("home") {
-            HomeScreen(navController = navController)
+
+        composable("home/{userEmail}") { backStackEntry ->
+            val currentUserEmail = backStackEntry.arguments?.getString("userEmail") ?: ""
+            HomeScreen(navController = navController, currentUserEmail = currentUserEmail)
         }
-        composable("pokequiz") {
-            PokeQuiz(navController = navController)
+
+        composable("pokequiz/{currentUserEmail}") { backStackEntry ->
+            val currentUserEmail = backStackEntry.arguments?.getString("currentUserEmail") ?: ""
+            totalScore = 0 // Reset for new game
+            totalCorrectAnswers = 0 // Reset for new game
+            PokeQuiz(navController = navController, currentUserEmail = currentUserEmail)
         }
-        //pass with param - same thing - copy&paste
-        composable("first_quiz") {
-            FirstQuizScreen(
+
+        // QuizScreen route for each question
+        composable(
+            route = "quiz/{questionIndex}",
+            arguments = listOf(navArgument("questionIndex") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val questionIndex = backStackEntry.arguments?.getInt("questionIndex") ?: 0
+
+            QuizScreen(
                 navController = navController,
-                score = totalScore,                 //passes all args value to the X-QuizScreen
-                correctAnswers = totalCorrectAnswers
-            ) { newScore, newCorrectAnswers ->      //fun for score/correctAnswers updates
-                totalScore = newScore                       //that are going to be used by the quiz_result
-                totalCorrectAnswers = newCorrectAnswers
-            }
-        }
-        composable("second_quiz") {
-            SecondQuizScreen(
-                navController = navController,
-                score = totalScore,
-                correctAnswers = totalCorrectAnswers
-            ) { newScore, newCorrectAnswers ->
-                totalScore = newScore
-                totalCorrectAnswers = newCorrectAnswers
-            }
-        }
-        composable("third_quiz") {
-            ThirdQuizScreen(
-                navController = navController,
-                score = totalScore,
-                correctAnswers = totalCorrectAnswers
-            ) { newScore, newCorrectAnswers ->
-                totalScore = newScore
-                totalCorrectAnswers = newCorrectAnswers
-            }
-        }
-        composable("fourth_quiz") {
-            FourthQuizScreen(
-                navController = navController,
-                score = totalScore,
-                correctAnswers = totalCorrectAnswers
-            ) { newScore, newCorrectAnswers ->
-                totalScore = newScore
-                totalCorrectAnswers = newCorrectAnswers
-            }
-        }
-        composable("fifth_quiz") {
-            FifthQuizScreen(
-                navController = navController,
-                score = totalScore,
-                correctAnswers = totalCorrectAnswers
-            ) { newScore, newCorrectAnswers ->
-                totalScore = newScore
-                totalCorrectAnswers = newCorrectAnswers
-            }
-        }
-        composable("sixth_quiz") {
-            SixthQuizScreen(
-                navController = navController,
-                score = totalScore,
-                correctAnswers = totalCorrectAnswers
-            ) { newScore, newCorrectAnswers ->
-                totalScore = newScore
-                totalCorrectAnswers = newCorrectAnswers
-            }
-        }
-        composable("final_quiz") {
-            FinalQuizScreen(
-                navController = navController,
+                questionIndex = questionIndex,
                 score = totalScore,
                 correctAnswers = totalCorrectAnswers
             ) { newScore, newCorrectAnswers ->
@@ -122,20 +81,31 @@ fun MyApp() {
         }
 
         composable(
-            route = "quiz_result/{totalCorrectAnswers}/{totalScore}",               //nav route for the quiz_result screen
-            arguments = listOf(                                                     //lists inside of quizresult
-                navArgument("totalCorrectAnswers") { type = NavType.IntType },//passes arg with int type
-                navArgument("totalScore") { type = NavType.IntType }          //passes arg with int type
+            route = "quiz_result/{totalCorrectAnswers}/{totalScore}",
+            arguments = listOf(
+                navArgument("totalCorrectAnswers") { type = NavType.IntType },
+                navArgument("totalScore") { type = NavType.IntType }
             )
-        ) { backStackEntry -> // Lambda to define what happens when the composable is navigated to
-            // Retrieve the totalCorrectAnswers argument from the navigation back stack entry
-            val totalCorrectAnswers = backStackEntry.arguments?.getInt("totalCorrectAnswers") ?: 0
-            // Retrieve the totalScore argument from the navigation back stack entry
-            val totalScore = backStackEntry.arguments?.getInt("totalScore") ?: 0
-            // Call the QuizResultScreen composable and pass the retrieved arguments to it
-            QuizResultScreen(navController, totalCorrectAnswers, totalScore)
+        ) { backStackEntry ->
+            val finalCorrectAnswers = backStackEntry.arguments?.getInt("totalCorrectAnswers") ?: 0
+            val finalScore = backStackEntry.arguments?.getInt("totalScore") ?: 0
+            val currentUserEmail = backStackEntry.arguments?.getString("currentUserEmail") ?: ""
+
+            QuizResultScreen(
+                navController = navController,
+                totalCorrectAnswers = finalCorrectAnswers,
+                totalScore = finalScore,
+                currentUserEmail = currentUserEmail
+            )
+
+            // Save final score and correct answers to DataStore
+            LaunchedEffect(Unit) {
+                coroutineScope.launch {
+                    StatsDataStore.saveQuizStats(context, currentUserEmail, finalScore, finalCorrectAnswers)
+                }
+            }
         }
-        //for stats
+
         composable(
             route = "stats_screen/{totalCorrectAnswers}/{totalScore}",
             arguments = listOf(
@@ -145,9 +115,9 @@ fun MyApp() {
         ) { backStackEntry ->
             val totalCorrectAnswers = backStackEntry.arguments?.getInt("totalCorrectAnswers") ?: 0
             val totalScore = backStackEntry.arguments?.getInt("totalScore") ?: 0
+
             StatsScreen(navController, totalCorrectAnswers, totalScore)
         }
-
     }
 }
 

@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -134,7 +133,7 @@ fun SignUpScreen(
             )
         )
 
-        //can use import datepickerdialog
+        //can use import date picker dialog
         OutlinedTextField(
             value = dateOfBirth,
             onValueChange = { input ->
@@ -186,9 +185,7 @@ fun SignUpScreen(
 //            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
 
-        Row (
-            horizontalArrangement = Arrangement.spacedBy(24.dp)//syntax for adding gap
-        ) {
+        Column {
             Button(
                 onClick = {//i love kotlin
                     errorMessage = ""
@@ -222,20 +219,20 @@ fun SignUpScreen(
             ) {
                 Text("Sign Up")
             }
-
-            Button(
-                onClick = { navController.navigate("login")},
-                modifier = Modifier
-                    .padding(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.pokemon_navyBlue),
-                    contentColor = Color.White
-                )
-            ) {
-                Text(    // Icon is an alternative for this
-                    "Back to Login"
-                )
-            }
+            // If necessary - uncomment then the user should have a way back to the LogIn Screen
+//            Button(
+//                onClick = { navController.navigate("login")},
+//                modifier = Modifier
+//                    .padding(8.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = colorResource(R.color.pokemon_navyBlue),
+//                    contentColor = Color.White
+//                )
+//            ) {
+//                Text(    // Icon is an alternative for this
+//                    "Back to Login"
+//                )
+//            }
         }
 
         if (errorMessage.isNotEmpty()) {

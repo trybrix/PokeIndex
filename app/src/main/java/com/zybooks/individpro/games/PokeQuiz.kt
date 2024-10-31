@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -21,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,10 +42,15 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.zybooks.individpro.R
 
-// sets navController to access the quiz home screen
 @Composable
-fun PokeQuiz(navController: NavController, totalCorrectAnswers: Int = 0, totalScore: Int = 0) {
-    val scrollState = rememberScrollState()//imported allows landscape scroll
+fun PokeQuiz(navController: NavController, currentUserEmail: String) {
+    val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    // Retrieve saved stats from DataStore and observe them as state(.collectAsState - updates the savedStats
+    val savedStats = StatsDataStore.getQuizStats(context, currentUserEmail).collectAsState(initial = 0 to 0)
+    // Destructuring declaration - allows to unpack values from a data structure into separate variables
+    val (fetchedTotalScore, fetchedTotalCorrectAnswers) = savedStats.value
 
     Image(
         painter = painterResource(id = R.drawable.quiz_homeimage),
@@ -58,7 +63,6 @@ fun PokeQuiz(navController: NavController, totalCorrectAnswers: Int = 0, totalSc
         contentScale = ContentScale.Crop
     )
 
-    // shows welcome screen and 2 buttons to start quiz and to go back to HOME
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,7 +71,6 @@ fun PokeQuiz(navController: NavController, totalCorrectAnswers: Int = 0, totalSc
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // simple welcome text for the user
         Text(
             text = "Welcome to PokeQuiz",
             modifier = Modifier
@@ -77,10 +80,10 @@ fun PokeQuiz(navController: NavController, totalCorrectAnswers: Int = 0, totalSc
                 .padding(20.dp),
             fontWeight = FontWeight.Bold,
             fontSize = 30.sp,
-
+            color = Color.Black
         )
 
-        Spacer(modifier = Modifier.height(50.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         Text(
             text = "Test your knowledge of the original 151 Pokémon in this 7-question quiz! " +
@@ -95,36 +98,40 @@ fun PokeQuiz(navController: NavController, totalCorrectAnswers: Int = 0, totalSc
             lineHeight = 28.sp
         )
 
-        Spacer(modifier = Modifier.height(150.dp))
+        Spacer(modifier = Modifier.height(120.dp))
 
-        Row (
-            modifier = Modifier
-                .padding(top = 25.dp),
+        Row(
+            modifier = Modifier.padding(top = 25.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            //button to nav to start the quiz - style is not needed just added for fun
-            Button(onClick = { navController.navigate("first_quiz") }) {
+            // Nav to the first question
+            Button(onClick = { navController.navigate("quiz/0") }) {
                 Text(text = "Start Quiz")
             }
 
-            Button(onClick = { navController.navigate("stats_screen/$totalCorrectAnswers/$totalScore") }) {
+            Button(
+                onClick = {
+                    navController.navigate("stats_screen/$fetchedTotalCorrectAnswers/$fetchedTotalScore")
+                }
+            ) {
                 Text(text = "View Stats")
             }
         }
 
-        //nav back to HOME where user can choose another activity to play to be added (not available yet - just the pokequiz)
-        Button(onClick = { navController.navigate("home") }) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = { navController.navigate("home/$currentUserEmail") }) {
             Text(text = "Home")
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PokeQuizPreview() {
-    val navController = rememberNavController()
-    PokeQuiz(navController = navController)
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun PokeQuizPreview() {
+//    val navController = rememberNavController()
+//    PokeQuiz(navController = navController, currentUserEmail = "email@example.com")
+//}
 
 //TODO - finish feedback - center questions/choices - set scores - calculate - check navCTRL - DONE
 @Composable
@@ -142,14 +149,41 @@ fun FeedbackDialog(isAnswerCorrect: Boolean, onDismiss: () -> Unit) {
     )
 }
 
-//Quiz_Result what is visible to the user after they finish the quiz
 @Composable
-fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, totalScore: Int) {
+fun ConfirmAnswerDialog(
+    selectedAnswer: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Confirm Answer") },
+        text = { Text("Are you sure you want to select \"$selectedAnswer\" as your answer?") },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onCancel) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+// Shown after the last question
+@Composable
+fun QuizResultScreen(
+    navController: NavController,
+    totalCorrectAnswers: Int,
+    totalScore: Int,
+    currentUserEmail: String
+) {
     val totalQuestions = 7
     val maxScore = totalQuestions * 100
-    val scrollState = rememberScrollState()//imported allows landscape scroll
+    val scrollState = rememberScrollState()
 
-    //simple bg
     Image(
         painter = painterResource(id = R.drawable.calm_verticalbg),
         contentDescription = "Pokemon Background Image",
@@ -169,22 +203,17 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        //text for user
-        Text(text = "\uD83C\uDF8AGame over!\uD83C\uDF8A", fontSize = 24.sp)
+        Text(text = "🎊 Game over! 🎊", fontSize = 24.sp)
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Here are your stats:", fontSize = 24.sp)
         Spacer(modifier = Modifier.height(16.dp))
 
-        //2 Columns inside of the column just so that i can change style of the users scores
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Amount Correct",
                 fontSize = 20.sp,
                 color = Color.Black
             )
-
             Text(
                 text = "$totalCorrectAnswers out of $totalQuestions",
                 fontSize = 24.sp,
@@ -198,15 +227,12 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Total Earning",
                 fontSize = 20.sp,
                 color = Color.Black
             )
-
             Text(
                 text = "\$$totalScore out of \$$maxScore",
                 fontSize = 24.sp,
@@ -216,25 +242,27 @@ fun QuizResultScreen(navController: NavController, totalCorrectAnswers: Int, tot
                     .background(Color.Black)
                     .padding(8.dp)
             )
-
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        //goes back to the first_quiz is user want to play again with 0/0 scores
         Button(onClick = {
-            navController.navigate("first_quiz")
+            navController.navigate("quiz/0") {
+                popUpTo("quiz/0") { inclusive = true } // Clear back stack to avoid score carry-over - double check MyApp
+            }
         }) {
             Text("Play Again")
         }
 
-        //goes back to the first_quiz is user want to play again with 0/0 scores
+        Spacer(modifier = Modifier.height(8.dp))
+
         Button(onClick = {
-            navController.navigate("pokequiz")
+            navController.navigate("pokequiz/$currentUserEmail") {
+                popUpTo("pokequiz/$currentUserEmail") { inclusive = true }
+            }
         }) {
             Text("Home")
         }
-
     }
 }
 
@@ -280,172 +308,99 @@ fun StatsScreen(navController: NavController, totalCorrectAnswers: Int, totalSco
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Row (
-            modifier = Modifier
-                .padding(top = 25.dp),
+        Row(
+            modifier = Modifier.padding(top = 25.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Button(onClick = {
-                navController.navigate("first_quiz")
-            }) {
+            Button(onClick = { navController.navigate("first_quiz") }) {
                 Text("Play")
             }
 
-            Button(onClick = {
-                navController.navigate("pokequiz")
-            }) {
+            Button(onClick = { navController.navigate("pokequiz/{currentUserEmail}") }) {
                 Text("Home")
             }
         }
     }
 }
 
+// Instead of having the quizzes on a diff #QuizScreen,  it gets put into an array for readability and more compact
+data class QuizQuestion(
+    val questionText: String,
+    val options: List<String>,
+    val correctAnswer: String,
+    val backgroundResource: Int
+)
 
-//comp screen for the first question
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
+val questions = listOf(
+    QuizQuestion(
+        questionText = "How many original Pokémon are there?",
+        options = listOf("99", "151", "50", "999"),
+        correctAnswer = "151",
+        backgroundResource = R.drawable.orig_pokemon
+    ),
+    QuizQuestion(
+        questionText = "Which Pokémon evolves into Charizard?",
+        options = listOf("Bulbasaur", "Squirtle", "Pidgey", "Charmander"),
+        correctAnswer = "Charmander",
+        backgroundResource = R.drawable.charizard
+    ),
+    QuizQuestion(
+        questionText = "What type is Pikachu?",
+        options = listOf("Water", "Fire", "Electric", "Grass"),
+        correctAnswer = "Electric",
+        backgroundResource = R.drawable.elements
+    ),
+    QuizQuestion(
+        questionText = "What is the primary type of Snorlax?",
+        options = listOf("Fighting", "Normal", "Rock", "Ground"),
+        correctAnswer = "Normal",
+        backgroundResource = R.drawable.snorlax
+    ),
+    QuizQuestion(
+        questionText = "Which Pokémon is known as the \"Tiny Turtle Pokémon\"?",
+        options = listOf("Squirtle", "Bulbasaur", "Charmander", "Pidgey"),
+        correctAnswer = "Squirtle",
+        backgroundResource = R.drawable.squirtle
+    ),
+    QuizQuestion(
+        questionText = "What type is Gengar?",
+        options = listOf("Ghost/Fighting", "Ghost/Poison", "Psychic/Fairy", "Dark/Ghost"),
+        correctAnswer = "Ghost/Poison",
+        backgroundResource = R.drawable.gengar
+    ),
+    QuizQuestion(
+        questionText = "Which Pokémon is known as the \"Rock Snake Pokémon\"?",
+        options = listOf("Golem", "Graveler", "Geodude", "Onix"),
+        correctAnswer = "Onix",
+        backgroundResource = R.drawable.onix
+    )
+)
+
+// Same here, have a single style for each problem
 @Composable
-fun FirstQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
-    var currentScore by remember { mutableStateOf(0) }
-    var currentCorrectAnswers by remember { mutableStateOf(0) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-
-    //simple bg
-    Box() {
-        Image(
-            painter = painterResource(id = R.drawable.orig_pokemon),
-            contentDescription = "Pokemon Background Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
-                },
-            contentScale = ContentScale.Crop
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        //centers overall
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column (
-            modifier = Modifier
-                .padding(10.dp),
-            //centers text
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                text = "Points Earned: $currentScore",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "How many original Pokémon are there?",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        //creates list then iterate through it
-        val options = listOf("99", "151", "50", "999")
-        options.forEach { option ->
-            //row for radiobtn and text
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
-                    .clickable {
-                        selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
-                    },
-                //centers
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RadioButton(
-                    selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
-                )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
-
-        Button(
-            onClick = {
-                if (selectedOption == "151") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //show feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Confirm")
-        }
-
-        if (showFeedbackDialog) {
-            FeedbackDialog(
-                isAnswerCorrect = isAnswerCorrect,
-                onDismiss = {
-                    showFeedbackDialog = false
-                    navController.navigate("second_quiz")
-                }
-            )
-        }
-    }
-}
-
-//SECOND
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
-@Composable
-fun SecondQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
+fun QuizScreen(
+    navController: NavController,
+    questionIndex: Int,
+    score: Int,
+    correctAnswers: Int,
+    onScoreUpdated: (Int, Int) -> Unit
+) {
+    val question = questions[questionIndex]
+    var selectedOption by remember { mutableStateOf<String?>(null) }
+    var isAnswerCorrect by remember { mutableStateOf(false) }
+    var isConfirmEnabled by remember { mutableStateOf(false) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
     var currentScore by remember { mutableStateOf(score) }
     var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
+    val scrollState = rememberScrollState()
+    val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    var showConfirmDialog by remember { mutableStateOf(false) }
 
-    //simple bg
     Box() {
         Image(
-            painter = painterResource(id = R.drawable.charizard),
-            contentDescription = "Pokemon Background Image",
+            painter = painterResource(id = question.backgroundResource),
+            contentDescription = "Background Image",
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
@@ -460,33 +415,33 @@ fun SecondQuizScreen(navController: NavController, score: Int, correctAnswers: I
             .fillMaxSize()
             .padding(16.dp)
             .verticalScroll(scrollState),
-        //centers overall
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column (
+        Column(
             modifier = Modifier
                 .padding(10.dp),
-            //centers text
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
+        ) {
             Text(
                 text = "Points Earned: $currentScore",
                 fontSize = 24.sp,
                 modifier = Modifier
                     .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
+                    .background(Color.White)
+                    .padding(4.dp)
                     .fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
 
             Text(
-                text = "Which Pokémon evolves into Charizard?",
+                text = question.questionText,
                 fontSize = 24.sp,
                 modifier = Modifier
                     .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
+                    .background(Color.White)
+                    .padding(4.dp)
                     .fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
@@ -494,175 +449,54 @@ fun SecondQuizScreen(navController: NavController, score: Int, correctAnswers: I
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        //creates list then iterate through it
-        val options = listOf("Bulbasaur", "Squirtle", "Pidgey", "Charmander")
-        options.forEach { option ->
-            //row for radiobtn and text
+        question.options.forEach { option ->
             Row(
                 modifier = Modifier
                     .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
+                    .background(Color.Yellow)
+                    .padding(4.dp)
                     .clickable {
                         selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
+                        isConfirmEnabled = true
                     },
-                //centers
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 RadioButton(
                     selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
+                    onClick = null
                 )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
+                Text(text = option, modifier = Modifier.padding(start = 8.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
 
         Button(
-            onClick = {
-                if (selectedOption == "Charmander") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //show feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
+            onClick = { showConfirmDialog = true },
+            enabled = isConfirmEnabled,
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("Confirm")
         }
 
-        if (showFeedbackDialog) {
-            FeedbackDialog(
-                isAnswerCorrect = isAnswerCorrect,
-                onDismiss = {
-                    showFeedbackDialog = false
-                    navController.navigate("third_quiz")
-                }
-            )
-        }
-    }
-}
-
-//THIRD
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
-@Composable
-fun ThirdQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
-    var currentScore by remember { mutableStateOf(score) }
-    var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    //simple bg
-    Box() {
-        Image(
-            painter = painterResource(id = R.drawable.elements),
-            contentDescription = "Pokemon Background Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
+        if (showConfirmDialog && selectedOption != null) {
+            ConfirmAnswerDialog(
+                selectedAnswer = selectedOption!!,
+                onConfirm = {
+                    showConfirmDialog = false
+                    if (selectedOption == question.correctAnswer) {
+                        isAnswerCorrect = true
+                        currentScore += 100
+                        currentCorrectAnswers += 1
+                        onScoreUpdated(currentScore, currentCorrectAnswers)
+                    } else {
+                        isAnswerCorrect = false
+                    }
+                    showFeedbackDialog = true
                 },
-            contentScale = ContentScale.Crop
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        //centers overall
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column (
-            modifier = Modifier
-                .padding(10.dp),
-            //centers text
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                text = "Points Earned: $currentScore",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
+                onCancel = { showConfirmDialog = false }
             )
-
-            Text(
-                text = "What type is Pikachu?",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        //creates list then iterate through it
-        val options = listOf("Water", "Fire", "Electric", "Grass")
-        options.forEach { option ->
-            //row for radiobtn and text
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
-                    .clickable {
-                        selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
-                    },
-                //centers
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RadioButton(
-                    selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
-                )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
-
-        Button(
-            onClick = {
-                if (selectedOption == "Electric") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Confirm")
         }
 
         if (showFeedbackDialog) {
@@ -670,508 +504,11 @@ fun ThirdQuizScreen(navController: NavController, score: Int, correctAnswers: In
                 isAnswerCorrect = isAnswerCorrect,
                 onDismiss = {
                     showFeedbackDialog = false
-                    navController.navigate("fourth_quiz")
-                }
-            )
-        }
-    }
-}
-
-//FOURTH
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
-@Composable
-fun FourthQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
-    var currentScore by remember { mutableStateOf(score) }
-    var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    //simple bg
-    Box() {
-        Image(
-            painter = painterResource(id = R.drawable.snorlax),
-            contentDescription = "Pokemon Background Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
-                },
-            contentScale = ContentScale.Crop
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        //centers overall
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column (
-            modifier = Modifier
-                .padding(10.dp),
-            //centers text
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                text = "Points Earned: $currentScore",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "What is the primary type of Snorlax?",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        //creates list then iterate through it
-        val options = listOf("Fighting", "Normal", "Rock", "Ground")
-        options.forEach { option ->
-            //row for radiobtn and text
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
-                    .clickable {
-                        selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
-                    },
-                //centers
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RadioButton(
-                    selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
-                )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
-
-        Button(
-            onClick = {
-                if (selectedOption == "Normal") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Confirm")
-        }
-
-        if (showFeedbackDialog) {
-            FeedbackDialog(
-                isAnswerCorrect = isAnswerCorrect,
-                onDismiss = {
-                    showFeedbackDialog = false
-                    navController.navigate("fifth_quiz")
-                }
-            )
-        }
-    }
-}
-
-//FIFTH
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
-@Composable
-fun FifthQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
-    var currentScore by remember { mutableStateOf(score) }
-    var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    //simple bg
-    Box() {
-        Image(
-            painter = painterResource(id = R.drawable.squirtle),
-            contentDescription = "Pokemon Background Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
-                },
-            contentScale = ContentScale.Crop
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        //centers overall
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column (
-            modifier = Modifier
-                .padding(10.dp),
-            //centers text
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                text = "Points Earned: $currentScore",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Which Pokémon is known as the \"Tiny Turtle Pokémon\"?",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        //creates list then iterate through it
-        val options = listOf("Squirtle", "Bulbasaur", "Charmander", "Pidgey")
-        options.forEach { option ->
-            //row for radiobtn and text
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
-                    .clickable {
-                        selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
-                    },
-                //centers
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RadioButton(
-                    selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
-                )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
-
-        Button(
-            onClick = {
-                if (selectedOption == "Squirtle") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Confirm")
-        }
-
-        if (showFeedbackDialog) {
-            FeedbackDialog(
-                isAnswerCorrect = isAnswerCorrect,
-                onDismiss = {
-                    showFeedbackDialog = false
-                    navController.navigate("sixth_quiz")
-                }
-            )
-        }
-    }
-}
-
-//SIXTH
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
-@Composable
-fun SixthQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
-    var currentScore by remember { mutableStateOf(score) }
-    var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    //simple bg
-    Box() {
-        Image(
-            painter = painterResource(id = R.drawable.gengar),
-            contentDescription = "Pokemon Background Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
-                },
-            contentScale = ContentScale.Crop
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        //centers overall
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column (
-            modifier = Modifier
-                .padding(10.dp),
-            //centers text
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                text = "Points Earned: $currentScore",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "What type is Gengar?",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        //creates list then iterate through it
-        val options = listOf("Ghost/Fighting", "Ghost/Poison", "Psychic/Fairy", "Dark/Ghost")
-        options.forEach { option ->
-            //row for radiobtn and text
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
-                    .clickable {
-                        selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
-                    },
-                //centers
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RadioButton(
-                    selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
-                )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
-
-        Button(
-            onClick = {
-                if (selectedOption == "Ghost/Poison") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Confirm")
-        }
-
-        if (showFeedbackDialog) {
-            FeedbackDialog(
-                isAnswerCorrect = isAnswerCorrect,
-                onDismiss = {
-                    showFeedbackDialog = false
-                    navController.navigate("final_quiz")
-                }
-            )
-        }
-    }
-}
-
-//Final
-//copy&paste for the other questions todo - create 7 questions w/ diff UI
-@Composable
-fun FinalQuizScreen(navController: NavController, score: Int, correctAnswers: Int, onScoreUpdated: (Int, Int) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }//init to null first because user !chosen an answer yet
-    var isAnswerCorrect by remember { mutableStateOf(false) }//^
-    var isConfirmEnabled by remember { mutableStateOf(false) }//^
-    var showFeedbackDialog by remember { mutableStateOf(false) }//init to false
-    var currentScore by remember { mutableStateOf(score) }
-    var currentCorrectAnswers by remember { mutableStateOf(correctAnswers) }
-    val scrollState = rememberScrollState()//imported allows landscape scroll
-    val configuration = LocalConfiguration.current // need this for orientation
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    //simple bg
-    Box() {
-        Image(
-            painter = painterResource(id = R.drawable.onix),
-            contentDescription = "Pokemon Background Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = BlurEffect(radiusX = 20f, radiusY = 20f)
-                },
-            contentScale = ContentScale.Crop
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        //centers overall
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column (
-            modifier = Modifier
-                .padding(10.dp),
-            //centers text
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                text = "Points Earned: $currentScore",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Which Pokémon is known as the \"Rock Snake Pokémon\"?",
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(Color.White).padding(4.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        //creates list then iterate through it
-        val options = listOf("Golem", "Graveler", "Geodude", "Onix")
-        options.forEach { option ->
-            //row for radiobtn and text
-            Row(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.Yellow).padding(4.dp)
-                    .clickable {
-                        selectedOption = option
-                        isConfirmEnabled = true//change to true when user chooses
-                    },
-                //centers
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RadioButton(
-                    selected = selectedOption == option,
-                    onClick = null //{ selectedOption = option } no need to interact directly with radbtn
-                )
-                Text(text = option,
-                    modifier = Modifier
-                        .padding(start = 8.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(if (isLandscape) 50.dp else 350.dp))
-
-        Button(
-            onClick = {
-                if (selectedOption == "Onix") {
-                    isAnswerCorrect = true
-                    currentScore += 100
-                    currentCorrectAnswers += 1
-                    onScoreUpdated(currentScore, currentCorrectAnswers)
-                } else {
-                    isAnswerCorrect = false
-                }
-                showFeedbackDialog = true  //feedback dialog
-            },
-            enabled = isConfirmEnabled,  //same thing in demo
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Confirm")
-        }
-
-        if (showFeedbackDialog) {
-            FeedbackDialog(
-                isAnswerCorrect = isAnswerCorrect,
-                onDismiss = {
-                    showFeedbackDialog = false
-                    //goes to quiz_result to get args
-                    navController.navigate("quiz_result/$currentCorrectAnswers/$currentScore")
+                    if (questionIndex < questions.size - 1) {
+                        navController.navigate("quiz/${questionIndex + 1}")
+                    } else {
+                        navController.navigate("quiz_result/$currentCorrectAnswers/$currentScore")
+                    }
                 }
             )
         }
